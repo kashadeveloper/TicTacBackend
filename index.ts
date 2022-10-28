@@ -45,9 +45,21 @@ io.on('connection', (socket) => {
   })
   socket.on('change room', (room) => {
     socket.join(room)
+    socket.emit('change room', ['ping', 'ok'])
   })
   socket.on('ping', (s) => {
     socket.emit('ping', 'pong')
+  })
+  socket.on('disconnecting', (s) => {
+    socket.rooms.forEach((value, key) => {
+      if (value.startsWith('game:')) {
+        io.in(value).emit('change room', ['ok', 'waiting'])
+        io.in(value).socketsLeave('waiting');
+      }
+    })
+  })
+  socket.on('rooms', () => {
+    socket.emit('change room', ['ok', socket.rooms])
   })
 })
 
@@ -88,17 +100,18 @@ app.use('*', notFoundHandler)
 
 async function randomUsers() {
   const clients = await io.in('waiting').fetchSockets();
+  //console.log(clients.length)
   if (clients.length <= 1) return;
 
   for (let i = 0; i < clients.length - 1; i++) {
     clients[i].leave('waiting');
     clients[i + 1].leave('waiting');
     clients[i].join(`game:${clients[i].id}-${clients[i + 1].id}`);
-     clients[i].emit('change room', `game:${clients[i].id}-${clients[i + 1].id}`);
-     clients[i + 1].join(`game:${clients[i].id}-${clients[i + 1].id}`);
-     clients[i + 1].emit('change room', `game:${clients[i].id}-${clients[i + 1].id}`);
+
+    clients[i].emit('change room', ['ok', `game:${clients[i].id}-${clients[i + 1].id}`]);
+    clients[i + 1].join(`game:${clients[i].id}-${clients[i + 1].id}`);
+    clients[i + 1].emit('change room', ['ok', `game:${clients[i].id}-${clients[i + 1].id}`]);
   }
-  console.log(io.sockets.adapter.rooms)
 }
 
 setInterval(() => randomUsers(), 1000)
