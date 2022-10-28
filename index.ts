@@ -10,13 +10,13 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   serveClient: false,
   cors: {
-    origin: "*"
-  }
+    origin: "*",
+  },
 });
 
 app.use(cors());
 
-app.get("/online", async (req: Request, res: Response) => {
+app.get("/online", async (_: Request, res: Response) => {
   const sockets = await io.fetchSockets();
   return res.json({
     status: "ok",
@@ -24,98 +24,112 @@ app.get("/online", async (req: Request, res: Response) => {
   });
 });
 
-app.get('/', async (req: Request, res: Response, next: any) => {
+app.get("/", async (req: Request, res: Response, next: any) => {
   try {
-    throw new Error('Server currently not available')
+    throw new Error("Server currently not available");
   } catch (e) {
-    next(e)
+    next(e);
   }
-})
+});
 
-
-
-io.on('connection', (socket) => {
-  const { username } = socket.handshake.query
+io.on("connection", (socket) => {
+  const { username } = socket.handshake.query;
   if (!username) return socket.disconnect(true);
   socket.data.username = username;
-  socket.on('change username', (username) => {
-    if (username.length <= 0 || username.length > 20) return username.emit('fail');
+  socket.on("change username", (username) => {
+    if (username.length <= 0 || username.length > 20)
+      return username.emit("fail");
 
-    socket.data.username = username
-  })
-  socket.on('change room', (room) => {
-    socket.join(room)
-    socket.emit('change room', ['ping', 'ok'])
-  })
-  socket.on('ping', (s) => {
-    socket.emit('ping', 'pong')
-  })
-  socket.on('disconnecting', (s) => {
+    socket.data.username = username;
+  });
+  socket.on("change room", (room) => {
+    socket.join(room);
+    socket.emit("change room", ["ping", "ok"]);
+  });
+  socket.on("ping", () => {
+    socket.emit("ping", "pong");
+  });
+  socket.on("leaveGame", (room) => {
     socket.rooms.forEach((value, key) => {
-      if (value.startsWith('game:')) {
-        io.in(value).emit('change room', ['ok', 'waiting'])
-        io.in(value).socketsLeave('waiting');
+      if (value.startsWith("game:")) {
+        io.in(value).emit("change room", ["error", "main"]);
+        io.in(value).socketsLeave(value);
       }
-    })
-  })
-  socket.on('rooms', () => {
-    socket.emit('change room', ['ok', socket.rooms])
-  })
-})
+    });
+  });
+  socket.on("disconnecting", (s) => {
+    socket.rooms.forEach((value, key) => {
+      if (value.startsWith("game:")) {
+        io.in(value).emit("change room", ["error", "main"]);
+        //io.in(value).socketsJoin("waiting");
+        io.in(value).socketsLeave(value);
+      }
+    });
+  });
+  socket.on("rooms", () => {
+    socket.emit("change room", ["ok", socket.rooms]);
+  });
+});
 
 async function notFoundHandler(req: Request, res: Response) {
-  if (req.accepts('application/json')) {
+  if (req.accepts("application/json")) {
     return res.status(404).json({
-      status: 'fail',
+      status: "fail",
       error: {
-        error_message: 'Page not found',
-        error_code: 404
-      }
-    })
+        error_message: "Page not found",
+        error_code: 404,
+      },
+    });
   }
-  if (req.accepts('application/xml')) {
-    res.setHeader('Content-Type', 'application/xml')
+  if (req.accepts("application/xml")) {
+    res.setHeader("Content-Type", "application/xml");
     return res.status(404).send(`<?xml version="1.0" encoding="UTF-8" ?>
       <root>
       <status>fail</status>
       <message>This page not found</message>
-    </root>`)
+    </root>`);
   }
-  return res.send('<h1>Not found</h1>')
+  return res.send("<h1>Not found</h1>");
 }
 
 function ErrorHandler(err: Error, req: Request, res: Response, next: any) {
   return res.json({
-    status: 'fail',
+    status: "fail",
     error: {
       error_message: err.message,
-      error_code: 500
-    }
-  })
+      error_code: 500,
+    },
+  });
 }
 
-app.use(ErrorHandler)
+app.use(ErrorHandler);
 
-app.use('*', notFoundHandler)
+app.use("*", notFoundHandler);
 
 async function randomUsers() {
-  const clients = await io.in('waiting').fetchSockets();
+  const clients = await io.in("waiting").fetchSockets();
   //console.log(clients.length)
   if (clients.length <= 1) return;
 
   for (let i = 0; i < clients.length - 1; i++) {
-    clients[i].leave('waiting');
-    clients[i + 1].leave('waiting');
+    clients[i].leave("waiting");
+    clients[i + 1].leave("waiting");
     clients[i].join(`game:${clients[i].id}-${clients[i + 1].id}`);
 
-    clients[i].emit('change room', ['ok', `game:${clients[i].id}-${clients[i + 1].id}`]);
+    clients[i].emit("change room", [
+      "ok",
+      `game:${clients[i].id}-${clients[i + 1].id}`,
+    ]);
     clients[i + 1].join(`game:${clients[i].id}-${clients[i + 1].id}`);
-    clients[i + 1].emit('change room', ['ok', `game:${clients[i].id}-${clients[i + 1].id}`]);
+    clients[i + 1].emit("change room", [
+      "ok",
+      `game:${clients[i].id}-${clients[i + 1].id}`,
+    ]);
   }
 }
 
-setInterval(() => randomUsers(), 1000)
+setInterval(() => randomUsers(), 1000);
 
 httpServer.listen(80, () => {
-  console.log('started')
+  console.log("started");
 });
