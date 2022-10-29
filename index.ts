@@ -67,6 +67,21 @@ io.on("connection", (socket) => {
     if (room == "main") socket.leave("waiting");
     socket.emit("change room", ["ping", "ok"]);
   });
+  socket.on("board", (item) => {
+    let game = gamesList.find((x) => x.players.includes(socket.data.username));
+    if (!game) return;
+    if (game.playsNow !== socket.data.username) return;
+
+    const index = item.split("-");
+    if (game.board[index[0]][index[1]].length >= 1) return;
+    game.board[Number(index[0])][Number(index[1])] = `${
+      game.designation[socket.data.username]
+    }`;
+    game.playsNow = game.players[game.nextIndex];
+    game.nextIndex = game.nextIndex <= 0 ? 1 : 0;
+    io.in(game.gameId).emit("board", game.board);
+    io.in(game.gameId).emit("playerNow", game.playsNow);
+  });
   socket.on("ping", () => {
     socket.emit("ping", "pong");
   });
@@ -140,7 +155,7 @@ async function randomUsers() {
     clients[i].emit("change room", ["ok", gameName]);
     clients[i + 1].join(gameName);
     clients[i + 1].emit("change room", ["ok", gameName]);
-    const designation = designationRand()
+    const designation = designationRand();
     gamesList.push({
       players: [clients[i].data.username, clients[i + 1].data.username],
       board: [
@@ -149,11 +164,12 @@ async function randomUsers() {
         ["", "", ""],
       ],
       playsNow: clients[i].data.username,
-      gameId: gameName, 
+      gameId: gameName,
       designation: {
         [clients[i].data.username]: designation[0],
-        [clients[i + 1].data.username]: designation[1]
-      }
+        [clients[i + 1].data.username]: designation[1],
+      },
+      nextIndex: 1,
     });
     // io.in(gameName).timeout(2000).emit("playerNow", clients[i].data.username);
     // io.in(gameName).emit("board", [
@@ -175,12 +191,22 @@ function removeGame(gameId: string) {
   return gamesList;
 }
 
+function checkWin(gameId: string) {
+  let game = gamesList.find(x => x.gameId === gameId);
+  if(!game) return false;
+
+  const properties = Object.getOwnPropertyNames(game.designation)
+
+  if(game.board[0][0] === game.board[0][1] && game.board[0][1] === game.board[0][2]) return game.designation[properties[0][0]]
+}
+
 function designationRand() {
   const random = Math.floor(Math.random() * 2);
-  if(random == 1) return ['X', 'O'];
-  if(random == 2) return ['O', 'X'];
+  console.log(random)
+  if (random == 1) return ["X", "O"];
+  if (random == 2) return ["O", "X"];
 
-  return ['X', 'O']
+  return ["X", "O"];
 }
 
 httpServer.listen(80, () => {
