@@ -4,7 +4,7 @@ import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import gameInfoProps from "./types/gameInfo.type";
-import { instrument } from '@socket.io/admin-ui'
+import { instrument } from "@socket.io/admin-ui";
 
 const app = express();
 
@@ -19,7 +19,7 @@ const io = new Server(httpServer, {
 });
 
 instrument(io, {
-  auth: false
+  auth: false,
 });
 
 app.use(cors());
@@ -73,8 +73,10 @@ io.on("connection", async (socket) => {
 
     const index = item.split("-");
     if (game.board[index[0]][index[1]].length >= 1) return;
-    game.board[Number(index[0])][Number(index[1])] = `${game.designation[socket.data.username]
-      }`;
+    game.board[Number(index[0])][Number(index[1])] = `${
+      game.designation[socket.data.username]
+    }`;
+    checkWin(game.gameId);
     game.playsNow = game.players[game.nextIndex];
     game.nextIndex = game.nextIndex <= 0 ? 1 : 0;
     io.in(game.gameId).emit("board", game.board);
@@ -154,7 +156,7 @@ async function randomUsers() {
     clients[i + 1].join(gameName);
     clients[i + 1].emit("change room", ["ok", gameName]);
     const designation = designationRand();
-    const rnd = random(i, i + 1)
+    const rnd = random(i, i + 1);
     gamesList.push({
       players: [clients[i].data.username, clients[i + 1].data.username],
       board: [
@@ -168,7 +170,7 @@ async function randomUsers() {
         [clients[i].data.username]: designation[0],
         [clients[i + 1].data.username]: designation[1],
       },
-      nextIndex: rnd + 1,
+      nextIndex: rnd <= 0 ? 1 : 0,
     });
   }
 }
@@ -185,12 +187,120 @@ async function removeGame(gameId: string) {
 }
 
 async function checkWin(gameId: string) {
-  let game = gamesList.find(x => x.gameId === gameId);
+  let game = gamesList.find((x) => x.gameId === gameId);
   if (!game) return false;
 
-  const properties = Object.getOwnPropertyNames(game.designation)
-
-  if (game.board[0][0] === game.board[0][1] && game.board[0][1] === game.board[0][2]) return game.designation[properties[0][0]]
+  if (
+    game.board[0][0].length > 0 &&
+    game.board[0][0] === game.board[0][1] &&
+    game.board[0][1] === game.board[0][2]
+  ) {
+    io.in(game.gameId).emit(
+      "win",
+      getKeyByValue(game.designation, game.board[0][0])
+    );
+    removeGame(game.gameId);
+  }
+  if (
+    game.board[1][0].length > 0 &&
+    game.board[1][0] === game.board[1][1] &&
+    game.board[1][1] === game.board[1][2]
+  ) {
+    io.in(game.gameId).emit(
+      "win",
+      getKeyByValue(game.designation, game.board[1][0])
+    );
+    removeGame(game.gameId);
+  }
+  if (
+    game.board[2][0].length > 0 &&
+    game.board[2][0] === game.board[2][1] &&
+    game.board[2][1] === game.board[2][2]
+  ) {
+    io.in(game.gameId).emit(
+      "win",
+      getKeyByValue(game.designation, game.board[2][0])
+    );
+    removeGame(game.gameId);
+  }
+  if (
+    game.board[0][0].length > 0 &&
+    game.board[1][0].length > 0 &&
+    game.board[2][0].length > 0 &&
+    game.board[0][0] === game.board[1][0] &&
+    game.board[1][0] === game.board[2][0]
+  ) {
+    io.in(game.gameId).emit(
+      "win",
+      getKeyByValue(game.designation, game.board[1][0])
+    );
+    removeGame(game.gameId);
+  }
+  if (
+    game.board[0][2].length > 0 &&
+    game.board[1][2].length > 0 &&
+    game.board[2][2].length > 0 &&
+    game.board[0][2] === game.board[1][2] &&
+    game.board[1][2] === game.board[2][2]
+  ) {
+    io.in(game.gameId).emit(
+      "win",
+      getKeyByValue(game.designation, game.board[1][2])
+    );
+    removeGame(game.gameId);
+  }
+  if (
+    game.board[0][1].length > 0 &&
+    game.board[1][1].length > 0 &&
+    game.board[2][1].length > 0 &&
+    game.board[0][1] === game.board[1][1] &&
+    game.board[1][1] === game.board[2][1]
+  ) {
+    io.in(game.gameId).emit(
+      "win",
+      getKeyByValue(game.designation, game.board[1][1])
+    );
+    removeGame(game.gameId);
+  }
+  if (
+    game.board[0][0].length > 0 &&
+    game.board[1][1].length > 0 &&
+    game.board[2][2].length > 0 &&
+    game.board[0][0] === game.board[1][1] &&
+    game.board[1][1] === game.board[2][2]
+  ) {
+    io.in(game.gameId).emit(
+      "win",
+      getKeyByValue(game.designation, game.board[1][1])
+    );
+    removeGame(game.gameId);
+  }
+  if (
+    game.board[0][2].length > 0 &&
+    game.board[1][1].length > 0 &&
+    game.board[2][0].length > 0 &&
+    game.board[0][2] === game.board[1][1] &&
+    game.board[1][1] === game.board[2][0]
+  ) {
+    io.in(game.gameId).emit(
+      "win",
+      getKeyByValue(game.designation, game.board[0][2])
+    );
+    removeGame(game.gameId);
+  } else if (
+    game.board[0][0].length > 0 &&
+    game.board[0][1].length > 0 &&
+    game.board[0][2].length > 0 &&
+    game.board[1][0].length > 0 &&
+    game.board[1][1].length > 0 &&
+    game.board[1][2].length > 0 &&
+    game.board[2][1].length > 0 &&
+    game.board[2][0].length > 0 &&
+    game.board[2][2].length > 0
+  ) {
+    io.in(game.gameId).emit("win", "");
+    removeGame(game.gameId);
+  }
 }
 
 function designationRand() {
@@ -208,10 +318,14 @@ const random = (x: number, y: number) => {
   return y
     ? Math.round(Math.random() * (y - x)) + x
     : Math.round(Math.random() * x);
-}
+};
 
 function getRndInteger(min: number, max: number) {
   return Math.floor(Math.random() * (max - min)) + min;
+}
+
+function getKeyByValue(object: { [index: string]: string }, value: any) {
+  return Object.keys(object).find((key) => object[key] === value);
 }
 
 httpServer.listen(80, () => {
