@@ -4,7 +4,7 @@ import cors from "cors";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import gameInfoProps from "./types/gameInfo.type";
-import { instrument } from "@socket.io/admin-ui";
+import { instrument } from '@socket.io/admin-ui'
 
 const app = express();
 
@@ -19,8 +19,7 @@ const io = new Server(httpServer, {
 });
 
 instrument(io, {
-  auth: false,
-  namespaceName: "/admin",
+  auth: false
 });
 
 app.use(cors());
@@ -52,7 +51,7 @@ app.get("/game/:gameId", async (req, res, next) => {
   }
 });
 
-io.on("connection", (socket) => {
+io.on("connection", async (socket) => {
   const { username } = socket.handshake.query;
   if (!username) return socket.disconnect(true);
   socket.data.username = username;
@@ -62,30 +61,29 @@ io.on("connection", (socket) => {
 
     socket.data.username = username;
   });
-  socket.on("change room", (room) => {
+  socket.on("change room", async (room) => {
     socket.join(room);
     if (room == "main") socket.leave("waiting");
     socket.emit("change room", ["ping", "ok"]);
   });
-  socket.on("board", (item) => {
+  socket.on("board", async (item) => {
     let game = gamesList.find((x) => x.players.includes(socket.data.username));
     if (!game) return;
     if (game.playsNow !== socket.data.username) return;
 
     const index = item.split("-");
     if (game.board[index[0]][index[1]].length >= 1) return;
-    game.board[Number(index[0])][Number(index[1])] = `${
-      game.designation[socket.data.username]
-    }`;
+    game.board[Number(index[0])][Number(index[1])] = `${game.designation[socket.data.username]
+      }`;
     game.playsNow = game.players[game.nextIndex];
     game.nextIndex = game.nextIndex <= 0 ? 1 : 0;
     io.in(game.gameId).emit("board", game.board);
     io.in(game.gameId).emit("playerNow", game.playsNow);
   });
-  socket.on("ping", () => {
+  socket.on("ping", async () => {
     socket.emit("ping", "pong");
   });
-  socket.on("leaveGame", (room) => {
+  socket.on("leaveGame", async (room) => {
     socket.rooms.forEach((value, key) => {
       if (value.startsWith("game:")) {
         io.in(value).emit("change room", ["error", "main"]);
@@ -94,7 +92,7 @@ io.on("connection", (socket) => {
       }
     });
   });
-  socket.on("disconnecting", (s) => {
+  socket.on("disconnecting", async (s) => {
     socket.rooms.forEach((value, key) => {
       if (value.startsWith("game:")) {
         io.in(value).emit("change room", ["error", "main"]);
@@ -156,6 +154,7 @@ async function randomUsers() {
     clients[i + 1].join(gameName);
     clients[i + 1].emit("change room", ["ok", gameName]);
     const designation = designationRand();
+    const rnd = random(i, i + 1)
     gamesList.push({
       players: [clients[i].data.username, clients[i + 1].data.username],
       board: [
@@ -163,26 +162,20 @@ async function randomUsers() {
         ["", "", ""],
         ["", "", ""],
       ],
-      playsNow: clients[i].data.username,
+      playsNow: clients[rnd].data.username,
       gameId: gameName,
       designation: {
         [clients[i].data.username]: designation[0],
         [clients[i + 1].data.username]: designation[1],
       },
-      nextIndex: 1,
+      nextIndex: rnd + 1,
     });
-    // io.in(gameName).timeout(2000).emit("playerNow", clients[i].data.username);
-    // io.in(gameName).emit("board", [
-    //   ["", "", ""],
-    //   ["", "", ""],
-    //   ["", "", ""],
-    // ]);
   }
 }
 
 setInterval(() => randomUsers(), 1000);
 
-function removeGame(gameId: string) {
+async function removeGame(gameId: string) {
   gamesList.forEach((value, index) => {
     if (value.gameId === gameId) {
       gamesList.splice(index, 1);
@@ -191,22 +184,34 @@ function removeGame(gameId: string) {
   return gamesList;
 }
 
-function checkWin(gameId: string) {
+async function checkWin(gameId: string) {
   let game = gamesList.find(x => x.gameId === gameId);
-  if(!game) return false;
+  if (!game) return false;
 
   const properties = Object.getOwnPropertyNames(game.designation)
 
-  if(game.board[0][0] === game.board[0][1] && game.board[0][1] === game.board[0][2]) return game.designation[properties[0][0]]
+  if (game.board[0][0] === game.board[0][1] && game.board[0][1] === game.board[0][2]) return game.designation[properties[0][0]]
 }
 
 function designationRand() {
-  const random = Math.floor(Math.random() * 2);
-  console.log(random)
-  if (random == 1) return ["X", "O"];
-  if (random == 2) return ["O", "X"];
+  const randomR = random(1, 2);
+  if (randomR == 1) return ["X", "O"];
+  if (randomR == 2) return ["O", "X"];
 
   return ["X", "O"];
+}
+
+const pick = (array: Array<any>) => {
+  return array[random(0, array.length - 1)];
+};
+const random = (x: number, y: number) => {
+  return y
+    ? Math.round(Math.random() * (y - x)) + x
+    : Math.round(Math.random() * x);
+}
+
+function getRndInteger(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 httpServer.listen(80, () => {
