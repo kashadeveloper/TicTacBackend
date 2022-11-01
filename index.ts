@@ -199,9 +199,9 @@ async function checkWin(gameId: string) {
       "win",
       getKeyByValue(game.designation, game.board[0][0])
     );
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   }
-  if (
+  else if (
     game.board[1][0].length > 0 &&
     game.board[1][0] === game.board[1][1] &&
     game.board[1][1] === game.board[1][2]
@@ -210,9 +210,9 @@ async function checkWin(gameId: string) {
       "win",
       getKeyByValue(game.designation, game.board[1][0])
     );
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   }
-  if (
+  else if (
     game.board[2][0].length > 0 &&
     game.board[2][0] === game.board[2][1] &&
     game.board[2][1] === game.board[2][2]
@@ -221,9 +221,9 @@ async function checkWin(gameId: string) {
       "win",
       getKeyByValue(game.designation, game.board[2][0])
     );
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   }
-  if (
+  else if (
     game.board[0][0].length > 0 &&
     game.board[1][0].length > 0 &&
     game.board[2][0].length > 0 &&
@@ -234,9 +234,9 @@ async function checkWin(gameId: string) {
       "win",
       getKeyByValue(game.designation, game.board[1][0])
     );
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   }
-  if (
+  else if (
     game.board[0][2].length > 0 &&
     game.board[1][2].length > 0 &&
     game.board[2][2].length > 0 &&
@@ -247,9 +247,9 @@ async function checkWin(gameId: string) {
       "win",
       getKeyByValue(game.designation, game.board[1][2])
     );
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   }
-  if (
+  else if (
     game.board[0][1].length > 0 &&
     game.board[1][1].length > 0 &&
     game.board[2][1].length > 0 &&
@@ -260,9 +260,9 @@ async function checkWin(gameId: string) {
       "win",
       getKeyByValue(game.designation, game.board[1][1])
     );
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   }
-  if (
+  else if (
     game.board[0][0].length > 0 &&
     game.board[1][1].length > 0 &&
     game.board[2][2].length > 0 &&
@@ -273,9 +273,9 @@ async function checkWin(gameId: string) {
       "win",
       getKeyByValue(game.designation, game.board[1][1])
     );
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   }
-  if (
+  else if (
     game.board[0][2].length > 0 &&
     game.board[1][1].length > 0 &&
     game.board[2][0].length > 0 &&
@@ -286,7 +286,7 @@ async function checkWin(gameId: string) {
       "win",
       getKeyByValue(game.designation, game.board[0][2])
     );
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   } else if (
     game.board[0][0].length > 0 &&
     game.board[0][1].length > 0 &&
@@ -299,7 +299,7 @@ async function checkWin(gameId: string) {
     game.board[2][2].length > 0
   ) {
     io.in(game.gameId).emit("win", "");
-    removeGame(game.gameId);
+    return removeGame(game.gameId);
   }
 }
 
