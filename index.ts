@@ -328,6 +328,6 @@ function getKeyByValue(object: { [index: string]: string }, value: any) {
   return Object.keys(object).find((key) => object[key] === value);
 }
 
-httpServer.listen(80, () => {
+httpServer.listen(process.env.PORT || 80, () => {
   console.log("started");
 });
