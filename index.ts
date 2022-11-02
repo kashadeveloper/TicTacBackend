@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import gameInfoProps from "./types/gameInfo.type";
 import { instrument } from "@socket.io/admin-ui";
+import generator from "./service/uniqueName";
 
 const app = express();
 
@@ -54,7 +55,11 @@ app.get("/game/:gameId", async (req, res, next) => {
 io.on("connection", async (socket) => {
   const { username } = socket.handshake.query;
   if (!username) return socket.disconnect(true);
-  socket.data.username = username;
+  let client = await getClientUsername(username);
+  if (client) {
+    socket.data.username = client;
+    socket.emit('change username', client)
+  } else socket.data.username = username;
   socket.on("change username", (username) => {
     if (username.length <= 0 || username.length > 20)
       return username.emit("fail");
@@ -200,8 +205,7 @@ async function checkWin(gameId: string) {
       getKeyByValue(game.designation, game.board[0][0])
     );
     return removeGame(game.gameId);
-  }
-  else if (
+  } else if (
     game.board[1][0].length > 0 &&
     game.board[1][0] === game.board[1][1] &&
     game.board[1][1] === game.board[1][2]
@@ -211,8 +215,7 @@ async function checkWin(gameId: string) {
       getKeyByValue(game.designation, game.board[1][0])
     );
     return removeGame(game.gameId);
-  }
-  else if (
+  } else if (
     game.board[2][0].length > 0 &&
     game.board[2][0] === game.board[2][1] &&
     game.board[2][1] === game.board[2][2]
@@ -222,8 +225,7 @@ async function checkWin(gameId: string) {
       getKeyByValue(game.designation, game.board[2][0])
     );
     return removeGame(game.gameId);
-  }
-  else if (
+  } else if (
     game.board[0][0].length > 0 &&
     game.board[1][0].length > 0 &&
     game.board[2][0].length > 0 &&
@@ -235,8 +237,7 @@ async function checkWin(gameId: string) {
       getKeyByValue(game.designation, game.board[1][0])
     );
     return removeGame(game.gameId);
-  }
-  else if (
+  } else if (
     game.board[0][2].length > 0 &&
     game.board[1][2].length > 0 &&
     game.board[2][2].length > 0 &&
@@ -248,8 +249,7 @@ async function checkWin(gameId: string) {
       getKeyByValue(game.designation, game.board[1][2])
     );
     return removeGame(game.gameId);
-  }
-  else if (
+  } else if (
     game.board[0][1].length > 0 &&
     game.board[1][1].length > 0 &&
     game.board[2][1].length > 0 &&
@@ -261,8 +261,7 @@ async function checkWin(gameId: string) {
       getKeyByValue(game.designation, game.board[1][1])
     );
     return removeGame(game.gameId);
-  }
-  else if (
+  } else if (
     game.board[0][0].length > 0 &&
     game.board[1][1].length > 0 &&
     game.board[2][2].length > 0 &&
@@ -274,8 +273,7 @@ async function checkWin(gameId: string) {
       getKeyByValue(game.designation, game.board[1][1])
     );
     return removeGame(game.gameId);
-  }
-  else if (
+  } else if (
     game.board[0][2].length > 0 &&
     game.board[1][1].length > 0 &&
     game.board[2][0].length > 0 &&
@@ -326,6 +324,17 @@ function getRndInteger(min: number, max: number) {
 
 function getKeyByValue(object: { [index: string]: string }, value: any) {
   return Object.keys(object).find((key) => object[key] === value);
+}
+
+async function getClientUsername(username: string | string[]) {
+  const sockets = await io.fetchSockets();
+
+  if(!sockets.length) return false;
+
+  let user = sockets.filter((x) => x.data.username === username);
+  if (!user.length) return false;
+
+  return username + `_${user.length}`;
 }
 
 httpServer.listen(process.env.PORT || 80, () => {
