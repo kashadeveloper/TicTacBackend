@@ -56,9 +56,10 @@ io.on("connection", async (socket) => {
   const { username } = socket.handshake.query;
   if (!username) return socket.disconnect(true);
   let client = await getClientUsername(username);
+  console.log(client);
   if (client) {
     socket.data.username = client;
-    socket.emit('change username', client)
+    socket.emit("change username", client);
   } else socket.data.username = username;
   socket.on("change username", (username) => {
     if (username.length <= 0 || username.length > 20)
@@ -329,12 +330,14 @@ function getKeyByValue(object: { [index: string]: string }, value: any) {
 async function getClientUsername(username: string | string[]) {
   const sockets = await io.fetchSockets();
 
-  if(!sockets.length) return false;
+  if (!sockets.length) return false;
 
-  let user = sockets.filter((x) => x.data.username === username);
+  let user = sockets.filter((x) => 
+    x.data.username === username
+  );
   if (!user.length) return false;
 
-  return username + `_${user.length}`;
+  return username + `_${generator()}`;
 }
 
 httpServer.listen(process.env.PORT || 80, () => {
