@@ -3,7 +3,7 @@ import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'uniqu
 const customConfig: Config = {
   dictionaries: [adjectives, colors],
   separator: '-',
-  length: 2,
+  length: 1,
 };
 
 function generator() {
